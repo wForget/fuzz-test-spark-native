@@ -1,0 +1,21 @@
+name: Spark Native Engine Fuzz Testing
+
+on:
+  schedule:
+      - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  fuzz-test:
+    strategy:
+      # super important if you want to see all results, even if one fails
+      # fail-fast is true by default
+      fail-fast: false
+      matrix:
+        java-version: [ '8' ]
+        spark-version: [ '3.5.4' ]
+    uses: ./.github/workflows/fuzz-test.yml
+    with:
+      java-version: ${{ matrix.java-version }}
+      spark-version: ${{ matrix.spark-version }}
+    secrets: inherit

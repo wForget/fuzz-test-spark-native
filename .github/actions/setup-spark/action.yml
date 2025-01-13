@@ -1,0 +1,40 @@
+name: setup-spark
+description: 'Install and cache spark'
+inputs:
+  spark-version:
+    description: 'version of spark to install (e.g. 3.5.4)'
+    required: false
+    default: '3.5.4'
+  scala-binary-version:
+    description: 'version of scala'
+    required: false
+    default: '2.12'
+runs:
+  using: composite
+  steps:
+    - name: Get cached Spark
+      id: get-spark-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: /opt/spark-${{ inputs.spark-version }}-bin-*
+        key: setup-spark-${{ inputs.spark-version }}
+    - name: Install Spark
+      if: steps.get-spark-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        cd /opt
+        wget https://archive.apache.org/dist/spark/spark-${{ inputs.spark-version }}/spark-${{ inputs.spark-version }}-bin-hadoop3.tgz
+        tar -xzf spark-${{ inputs.spark-version }}-bin-hadoop3.tgz && rm spark-${{ inputs.spark-version }}-bin-hadoop3.tgz
+    - name: Set Spark Environments
+      shell: bash
+      run: |
+          SPARK_HOME=/opt/spark-${{ inputs.spark-version }}-bin-hadoop3
+          echo "SPARK_HOME=$SPARK_HOME" >> $GITHUB_ENV
+          echo "$SPARK_HOME/bin" >> $GITHUB_PATH
+    - name: Cached Spark
+      if: steps.get-spark-cache.outputs.cache-hit != 'true'
+      id: spark-cache
+      uses: actions/cache/save@v4
+      with:
+        path: /opt/spark-${{ inputs.spark-version }}-bin-*
+        key: setup-spark-${{ inputs.spark-version }}

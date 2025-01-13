@@ -1,0 +1,38 @@
+name: setup-maven
+description: 'Install and cache maven'
+inputs:
+  maven-version:
+    description: 'version of maven to install (e.g. 3.8.8)'
+    required: false
+    default: '3.8.8'
+runs:
+  using: composite
+  steps:
+    - name: Get cached Maven
+      id: get-maven-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: apache-maven-*
+        key: setup-maven-${{ inputs.maven-version }}
+    - name: Install Maven
+      if: steps.get-maven-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        wget https://downloads.apache.org/maven/maven-3/${{ inputs.maven-version }}/binaries/apache-maven-${{ inputs.maven-version }}-bin.tar.gz
+        tar -xzf apache-maven-${{ inputs.maven-version }}-bin.tar.gz && rm apache-maven-${{ inputs.maven-version }}-bin.tar.gz
+        MAVEN_HOME=`pwd`/apache-maven-${{ inputs.maven-version }}
+        echo "MAVEN_HOME=$MAVEN_HOME" >> $GITHUB_ENV
+        echo "$MAVEN_HOME/bin" >> $GITHUB_PATH
+    - name: Set Maven Environments
+      shell: bash
+      run: |
+        MAVEN_HOME=`pwd`/apache-maven-${{ inputs.maven-version }}
+        echo "MAVEN_HOME=$MAVEN_HOME" >> $GITHUB_ENV
+        echo "$MAVEN_HOME/bin" >> $GITHUB_PATH
+    - name: Cached Maven
+      if: steps.get-maven-cache.outputs.cache-hit != 'true'
+      id: maven-cache
+      uses: actions/cache/save@v4
+      with:
+        path: apache-maven-*
+        key: setup-maven-${{ inputs.maven-version }}

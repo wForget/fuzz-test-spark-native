@@ -1,0 +1,221 @@
+name: Common workflow
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        default: 'ubuntu-latest'
+        required: false
+        type: string
+      java-version:
+        default: '8'
+        required: false
+        type: string
+      spark-version:
+        default: '3.5.4'
+        required: false
+        type: string
+      spark-binary-version:
+        default: '3.5'
+        required: false
+        type: string
+      scala-version:
+        default: '2.12.17'
+        required: false
+        type: string
+      scala-binary-version:
+        default: '2.12'
+        required: false
+        type: string
+
+jobs:
+  build-fuzz-test:
+    name: Build fuzz Test
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+#      - name: Get cached fuzz test lib
+#        id: get-fuzz-test-cache
+#        uses: actions/cache@v4
+#        with:
+#          path: /tmp/fuzz-test-spark-native-*.jar
+#          key: fuzz-test-spark-native-lib-${{ hashFiles('src/**', 'pom.xml') }}
+#          restore-keys:
+#            fuzz-test-spark-native-lib-
+#          enableCrossOsArchive: true
+      - name: Build fuzz Test
+        if: steps.get-fuzz-test-cache.outputs.cache-hit != 'true'
+        run: |
+          mvn clean package -DskipTests
+          cp target/fuzz-test-spark-native-*.jar .
+      - name: Upload fuzz test lib
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-test-spark-${{ github.run_id }}
+          path: |
+            fuzz-test-spark-native-*.jar
+          retention-days: 1 # remove the artifact after 1 day, only valid for this workflow
+          overwrite: true
+
+  build-comet:
+    name: Build Comet
+    needs: build-fuzz-test
+    runs-on: ${{ inputs.os }}
+    container:
+      image: amd64/rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download fuzz test lib
+        uses: actions/download-artifact@v4
+        with:
+          name: fuzz-test-spark-${{ github.run_id }}
+#      - name: Get cached fuzz test lib
+#        id: get-fuzz-test-cache
+#        uses: actions/cache@v4
+#        env:
+#          ACTIONS_STEP_DEBUG: true
+#        with:
+#          path: /tmp/fuzz-test-spark-native-*.jar
+#          key: fuzz-test-spark-native-lib-${{ hashFiles('src/**', 'pom.xml') }}
+#          restore-keys:
+#            fuzz-test-spark-native-lib-
+#          #fail-on-cache-miss: true
+#          enableCrossOsArchive: true
+      - name: Checkout Datafusion Comet
+        uses: actions/checkout@v4
+        with:
+          repository: apache/datafusion-comet
+          path: datafusion-comet
+          ref: main
+          fetch-depth: 1
+      - name: Setup Rust & Java toolchain
+        uses: ./.github/actions/setup-builder
+        with:
+          rust-version: 'stable'
+          jdk-version: ${{ inputs.java-version }}
+      - name: Get date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+      - name: Get cached Datafusion Comet lib
+        id: get-comet-spark-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-*.jar
+          key: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Build Datafusion Comet
+        if: steps.get-comet-spark-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd datafusion-comet
+          PROFILES="-Pspark-${{ inputs.spark-binary-version }}" make release
+          cp spark/target/comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-*.jar ..
+      - name: Cached Datafusion Comet lib
+        if: steps.get-comet-spark-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-*.jar
+          key: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Setup Spark
+        uses: ./.github/actions/setup-spark
+        with:
+          spark-version: ${{ inputs.spark-version }}
+          scala-binary-version: ${{ inputs.scala-binary-version }}
+      - name: Run fuzz test with comet on spark
+        shell: bash
+        run: |
+          ls fuzz-test-spark-native-*
+          ls comet-spark-spark*
+          spark-shell --help
+#      - name: Upload Comet lib
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: datafusion-comet-spark-${{ github.run_id }}
+#          path: |
+#            datafusion-comet/spark/target/comet-spark-spark${{inputs.spark-binary-version}}_${{inputs.scala-binary-version}}-*.jar
+#          retention-days: 1 # remove the artifact after 1 day, only valid for this workflow
+#          overwrite: true
+
+  build-blaze:
+    name: Build Blaze
+    needs: build-fuzz-test
+    runs-on: ${{ inputs.os }}
+    container:
+      image: amd64/rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download fuzz test lib
+        uses: actions/download-artifact@v4
+        with:
+          name: fuzz-test-spark-${{ github.run_id }}
+#      - name: Get cached fuzz test lib
+#        id: get-fuzz-test-cache
+#        uses: actions/cache@v4
+#        with:
+#          path: /tmp/fuzz-test-spark-native-*.jar
+#          key: fuzz-test-spark-native-lib-${{ hashFiles('src/**', 'pom.xml') }}
+#          restore-keys:
+#            fuzz-test-spark-native-lib-
+#          #fail-on-cache-miss: true
+#          enableCrossOsArchive: true
+      - name: Checkout Blaze
+        uses: actions/checkout@v4
+        with:
+          repository: kwai/blaze
+          path: blaze
+          ref: master
+          fetch-depth: 1
+      - name: Setup Rust & Java toolchain
+        uses: ./.github/actions/setup-builder
+        with:
+          rust-version: 'stable'
+          jdk-version: ${{ inputs.java-version }}
+      - name: Setup Maven
+        uses: ./.github/actions/setup-maven
+      - name: Get date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+      - name: Get cached Blaze lib
+        id: get-blaze-spark-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: blaze-engine-spark-${{inputs.spark-binary-version}}-*.jar
+          key: blaze-spark${{ inputs.spark-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Build Blaze
+        if: steps.get-blaze-spark-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd blaze
+          mvn clean package -Pspark-${{ inputs.spark-binary-version }} -Prelease
+          cp target/blaze-engine-spark-${{inputs.spark-binary-version}}-*.jar ..
+      - name: Cached Blaze lib
+        if: steps.get-blaze-spark-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: blaze-engine-spark-${{inputs.spark-binary-version}}-*.jar
+          key: blaze-spark${{ inputs.spark-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Setup Spark
+        uses: ./.github/actions/setup-spark
+        with:
+          spark-version: ${{ inputs.spark-version }}
+          scala-binary-version: ${{ inputs.scala-binary-version }}
+      - name: Run fuzz test with comet on spark
+        shell: bash
+        run: |
+          ls fuzz-test-spark-native-*
+          ls blaze-engine-spark-*
+          spark-shell --help
+#      - name: Upload Blaze lib
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: Blaze-spark-${{ github.run_id }}
+#          path: |
+#            blaze/target/blaze-engine-spark-${{inputs.spark-binary-version}}-*.jar
+#          retention-days: 1 # remove the artifact after 1 day, only valid for this workflow
+#          overwrite: true
+  # TODO
+  # build-gluten:
