@@ -5,6 +5,9 @@ on:
       - cron: '0 1 * * *'
   workflow_dispatch:
 
+permissions:
+  issues: write
+
 jobs:
   fuzz-test:
     strategy:

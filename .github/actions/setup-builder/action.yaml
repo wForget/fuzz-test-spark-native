@@ -34,8 +34,8 @@ runs:
     - name: Install Build Dependencies
       shell: bash
       run: |
-        apt-get update
-        apt-get install -y protobuf-compiler
+        sudo apt-get update
+        sudo apt-get install -y protobuf-compiler
 
     - name: Install JDK ${{inputs.jdk-version}}
       uses: actions/setup-java@v4
@@ -52,7 +52,7 @@ runs:
       # rustfmt is needed for the substrait build script
       run: |
         echo "Installing ${{inputs.rust-version}}"
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         rustup toolchain install ${{inputs.rust-version}}
         rustup default ${{inputs.rust-version}}
         rustup component add rustfmt clippy

@@ -42,28 +42,26 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ inputs.java-version }}
-#      - name: Get cached fuzz test lib
-#        id: get-fuzz-test-cache
-#        uses: actions/cache@v4
-#        with:
-#          path: /tmp/fuzz-test-spark-native-*.jar
-#          key: fuzz-test-spark-native-lib-${{ hashFiles('src/**', 'pom.xml') }}
-#          restore-keys:
-#            fuzz-test-spark-native-lib-
-#          enableCrossOsArchive: true
+      - name: Get cached fuzz test lib
+        id: get-fuzz-test-cache
+        uses: actions/cache@v4
+        with:
+          path: fuzz-test-spark-native-*.jar
+          key: fuzz-test-spark-native-lib-${{ hashFiles('pom.xml', '**/*.scala', '**/*.java') }}
+          enableCrossOsArchive: true
       - name: Build fuzz Test
         if: steps.get-fuzz-test-cache.outputs.cache-hit != 'true'
         run: |
           mvn clean package -DskipTests
           cp target/fuzz-test-spark-native-*.jar .
-      - name: Upload fuzz test lib
-        uses: actions/upload-artifact@v4
-        with:
-          name: fuzz-test-spark-${{ github.run_id }}
-          path: |
-            fuzz-test-spark-native-*.jar
-          retention-days: 1 # remove the artifact after 1 day, only valid for this workflow
-          overwrite: true
+#      - name: Upload fuzz test lib
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: fuzz-test-spark-${{ github.run_id }}
+#          path: |
+#            fuzz-test-spark-native-*.jar
+#          retention-days: 1 # remove the artifact after 1 day, only valid for this workflow
+#          overwrite: true
 
   build-comet:
     name: Build Comet
@@ -137,6 +135,7 @@ jobs:
         uses: ./.github/actions/report-fuzz-test
         with:
           native-engine: comet
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 #      - name: Run fuzz test with comet on spark
 #        shell: bash
 #        run: |
@@ -241,6 +240,7 @@ jobs:
         uses: ./.github/actions/report-fuzz-test
         with:
           native-engine: comet
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 #      - name: Upload Blaze lib
 #        uses: actions/upload-artifact@v4
 #        with:

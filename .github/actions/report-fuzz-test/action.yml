@@ -4,6 +4,9 @@ inputs:
   native-engine:
     description: 'type of spark native engine (eg. blaze/comet/gluten)'
     required: true
+  github-token:
+    description: 'GitHub token'
+    required: true
 runs:
   using: composite
   steps:
@@ -18,7 +21,7 @@ runs:
       if: ${{ hashFiles('results.md') != '' }}
       shell: bash
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.github-token }}
         GH_REPO: ${{ github.repository }}
       run: |
         issue_title="${{ steps.get-title.outputs.issue_title }}"
@@ -29,6 +32,6 @@ runs:
         else
           # create new issue
           action_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          new_issue_url=$(gh issue create --title "$issue_title --body "Action: $action_url" --label ${{ inputs.native-engine }})
+          new_issue_url=$(gh issue create --title "$issue_title" --body "Action: $action_url" --label ${{ inputs.native-engine }})
           gh issue comment $new_issue_url --body-file results.md
         fi

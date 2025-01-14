@@ -10,10 +10,20 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Download fuzz test lib
-      uses: actions/download-artifact@v4
+#    - name: Download fuzz test lib
+#      uses: actions/download-artifact@v4
+#      with:
+#        name: fuzz-test-spark-${{ github.run_id }}
+    - name: Get cached fuzz test lib
+      id: get-fuzz-test-cache
+      uses: actions/cache/restore@v4
       with:
-        name: fuzz-test-spark-${{ github.run_id }}
+        path: fuzz-test-spark-native-*.jar
+        key: fuzz-test-spark-native-lib-${{ hashFiles('pom.xml', '**/*.scala', '**/*.java') }}
+        restore-keys:
+          fuzz-test-spark-native-lib-
+        enableCrossOsArchive: true
+        fail-on-cache-miss: true
     - name: Copy native engine jar to spark jars
       shell: bash
       run: |
