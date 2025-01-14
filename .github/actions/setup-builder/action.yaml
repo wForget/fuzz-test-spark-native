@@ -22,8 +22,8 @@ description: 'Prepare Build Environment'
 inputs:
   rust-version:
     description: 'version of rust to install (e.g. nightly)'
-    required: true
-    default: 'stable'
+    required: false
+    default: 'none'
   jdk-version:
     description: 'jdk version to install (e.g., 17)'
     required: true
@@ -48,6 +48,7 @@ runs:
       run: echo "JAVA_HOME=$(echo ${JAVA_HOME})" >> $GITHUB_ENV
 
     - name: Setup Rust toolchain
+      if: inputs.rust-version != 'none'
       shell: bash
       # rustfmt is needed for the substrait build script
       run: |

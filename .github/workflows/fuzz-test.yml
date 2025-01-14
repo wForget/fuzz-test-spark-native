@@ -54,39 +54,13 @@ jobs:
         run: |
           mvn clean package -DskipTests
           cp target/fuzz-test-spark-native-*.jar .
-#      - name: Upload fuzz test lib
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: fuzz-test-spark-${{ github.run_id }}
-#          path: |
-#            fuzz-test-spark-native-*.jar
-#          retention-days: 1 # remove the artifact after 1 day, only valid for this workflow
-#          overwrite: true
 
   build-comet:
-    name: Build Comet
+    name: Build comet and run fuzz test
     needs: build-fuzz-test
     runs-on: ${{ inputs.os }}
-#    container:
-#      image: amd64/rust
     steps:
       - uses: actions/checkout@v4
-#      - name: Download fuzz test lib
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: fuzz-test-spark-${{ github.run_id }}
-#      - name: Get cached fuzz test lib
-#        id: get-fuzz-test-cache
-#        uses: actions/cache@v4
-#        env:
-#          ACTIONS_STEP_DEBUG: true
-#        with:
-#          path: /tmp/fuzz-test-spark-native-*.jar
-#          key: fuzz-test-spark-native-lib-${{ hashFiles('src/**', 'pom.xml') }}
-#          restore-keys:
-#            fuzz-test-spark-native-lib-
-#          #fail-on-cache-miss: true
-#          enableCrossOsArchive: true
       - name: Checkout Datafusion Comet
         uses: actions/checkout@v4
         with:
@@ -169,27 +143,11 @@ jobs:
 #          overwrite: true
 
   build-blaze:
-    name: Build Blaze
+    name: Build blaze and run fuzz test
     needs: build-fuzz-test
     runs-on: ${{ inputs.os }}
-#    container:
-#      image: amd64/rust
     steps:
       - uses: actions/checkout@v4
-#      - name: Download fuzz test lib
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: fuzz-test-spark-${{ github.run_id }}
-#      - name: Get cached fuzz test lib
-#        id: get-fuzz-test-cache
-#        uses: actions/cache@v4
-#        with:
-#          path: /tmp/fuzz-test-spark-native-*.jar
-#          key: fuzz-test-spark-native-lib-${{ hashFiles('src/**', 'pom.xml') }}
-#          restore-keys:
-#            fuzz-test-spark-native-lib-
-#          #fail-on-cache-miss: true
-#          enableCrossOsArchive: true
       - name: Checkout Blaze
         uses: actions/checkout@v4
         with:
@@ -249,5 +207,79 @@ jobs:
 #            blaze/target/blaze-engine-spark-${{inputs.spark-binary-version}}-*.jar
 #          retention-days: 1 # remove the artifact after 1 day, only valid for this workflow
 #          overwrite: true
-  # TODO
-  # build-gluten:
+
+  build-gluten:
+    name: Build gluten and run fuzz test
+    needs: build-fuzz-test
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout Gluten
+        uses: actions/checkout@v4
+        with:
+          repository: apache/incubator-gluten
+          path: incubator-gluten
+          ref: main
+          fetch-depth: 1
+      - name: Setup Rust & Java toolchain
+        uses: ./.github/actions/setup-builder
+        with:
+          jdk-version: ${{ inputs.java-version }}
+      - name: Setup Maven
+        uses: ./.github/actions/setup-maven
+      - name: Get date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+      - name: Get cached gluten lib
+        id: get-gluten-spark-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: gluten-velox-bundle-spark*.jar
+          key: gluten-spark${{ inputs.spark-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Get cached gluten ccache
+        id: gluten-ccache-cache
+        uses: actions/cache@v4
+        with:
+          path: incubator-gluten/.ccache
+          key: ccache-centos7-release-default-${{ steps.get-date.outputs.date }}
+          restore-keys: |
+            ccache-centos7-release-default
+      - name: Build Gluten
+        if: steps.get-gluten-spark-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd incubator-gluten
+          docker run -v $GITHUB_WORKSPACE/incubator-gluten:/work -w /work apache/gluten:vcpkg-centos-7 bash -c "
+            df -a
+            cd /work
+            export CCACHE_DIR=/work/.ccache
+            bash dev/ci-velox-buildstatic-centos-7.sh
+            ccache -s
+            mkdir -p /work/.m2/repository/org/apache/arrow/
+            cp -r /root/.m2/repository/org/apache/arrow/* /work/.m2/repository/org/apache/arrow/
+          "
+          mkdir -p ~/.m2/repository/org/apache/arrow
+          cp -r $GITHUB_WORKSPACE/incubator-gluten/.m2/repository/org/apache/arrow/* ~/.m2/repository/org/apache/arrow/
+          mvn clean package -Pbackends-velox -Pceleborn -Puniffle -Pspark-${{ inputs.spark-binary-version }} -DskipTests
+          cp package/target/gluten-velox-bundle-spark*.jar ..
+      - name: Cached Gluten lib
+        if: steps.get-gluten-spark-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: gluten-velox-bundle-spark*.jar
+          key: gluten-spark${{ inputs.spark-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Setup Spark
+        uses: ./.github/actions/setup-spark
+        with:
+          spark-version: ${{ inputs.spark-version }}
+          scala-binary-version: ${{ inputs.scala-binary-version }}
+      - name: Run fuzz test with gluten on spark
+        uses: ./.github/actions/run-fuzz-test
+        with:
+          native-engine: gluten
+          native-engine-jar: gluten-velox-bundle-spark*.jar
+      - name: Report fuzz test result of Gluten
+        uses: ./.github/actions/report-fuzz-test
+        with:
+          native-engine: Gluten
+          github-token: ${{ secrets.GITHUB_TOKEN }}
