@@ -281,5 +281,5 @@ jobs:
       - name: Report fuzz test result of Gluten
         uses: ./.github/actions/report-fuzz-test
         with:
-          native-engine: Gluten
+          native-engine: gluten
           github-token: ${{ secrets.GITHUB_TOKEN }}

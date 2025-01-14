@@ -31,10 +31,10 @@ runs:
         max_body_size=262144
         file_size=$(wc -c <results.md)
         if [ $file_size -ge $max_body_size ]; then
-          truncate --size $max_body_size results.md
           truncate_msg="**Note**: The report is truncated due to issue comment length limit. You can download the complete report file in the action's artifacts."
           # add truncate message to the beginning of the file
           sed -i "1s/^/$truncate_msg\n/" results.md
+          truncate --size $max_body_size results.md
         fi
 
         previous_issue_number=$(gh issue list --search "$issue_title in:title" --json number --jq '.[0].number')

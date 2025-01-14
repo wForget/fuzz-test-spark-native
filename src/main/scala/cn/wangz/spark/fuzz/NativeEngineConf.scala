@@ -42,7 +42,7 @@ class NativeEngineConf(engineType: NativeEngineType) {
       case NativeEngineType.COMET =>
         spark.conf.set("spark.comet.enabled", "false")
       case NativeEngineType.GLUTEN =>
-        spark.conf.set("spark.gluten.enable", "false")
+        spark.conf.set("spark.gluten.enabled", "false")
     }
   }
 
@@ -53,7 +53,7 @@ class NativeEngineConf(engineType: NativeEngineType) {
       case NativeEngineType.COMET =>
         spark.conf.set("spark.comet.enabled", "true")
       case NativeEngineType.GLUTEN =>
-        spark.conf.set("spark.gluten.enable", "true")
+        spark.conf.set("spark.gluten.enabled", "true")
     }
   }
 
