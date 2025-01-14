@@ -34,7 +34,7 @@ object QueryRunner {
       showMatchingResults: Boolean,
       showFailedSparkQueries: Boolean = false): Unit = {
 
-    val outputFilename = s"results-${System.currentTimeMillis()}.md"
+    val outputFilename = s"results.md"
     // scalastyle:off println
     println(s"Writing results to $outputFilename")
     // scalastyle:on println
@@ -42,16 +42,22 @@ object QueryRunner {
     val w = new BufferedWriter(new FileWriter(outputFilename))
 
     // register input files
+    w.write("## Table Schema\n")
     for (i <- 0 until numFiles) {
       val table = spark.read.parquet(s"test$i.parquet")
       val tableName = s"test$i"
       table.createTempView(tableName)
+      w.write("```\n")
       w.write(
         s"Created table $tableName with schema:\n\t" +
           s"${table.schema.fields.map(f => s"${f.name}: ${f.dataType}").mkString("\n\t")}\n\n")
+      w.write("```\n")
+      w.write("\n")
     }
 
     val querySource = Source.fromFile(filename)
+    var diffCount = 0;
+    var errorCount = 0;
     try {
       querySource
         .getLines()
@@ -93,6 +99,7 @@ object QueryRunner {
                       w.write(s"First difference at row $i:\n")
                       w.write("Spark: `" + formatRow(l) + "`\n")
                       w.write(s"Native engine ${nativeEngineConf.engineName}: `" + formatRow(r) + "`\n")
+                      diffCount += 1
                       i = sparkRows.length
                     }
                   }
@@ -104,12 +111,19 @@ object QueryRunner {
                 w.write(
                   s"[ERROR] Spark produced ${sparkRows.length} rows and " +
                     s"Native engine ${nativeEngineConf.engineName} produced ${nativeEngineRows.length} rows.\n")
+                diffCount += 1
               }
             } catch {
-              case e: Exception =>
+              case e: Throwable =>
                 // the query worked in Spark but failed in Native engine, so this is likely a bug in Native engine
                 showSQL(w, sql)
+
+                w.write("### Error Message\n")
+                w.write("```\n")
                 w.write(s"[ERROR] Query failed in native engine ${nativeEngineConf.engineName}: ${e.getMessage}:\n")
+                w.write("```\n")
+
+                w.write("### Error StackTrace\n")
                 w.write("```\n")
                 val sw = new StringWriter()
                 val p = new PrintWriter(sw)
@@ -123,7 +137,7 @@ object QueryRunner {
             w.flush()
 
           } catch {
-            case e: Exception =>
+            case e: Throwable =>
               // we expect many generated queries to be invalid
               if (showFailedSparkQueries) {
                 showSQL(w, sql)

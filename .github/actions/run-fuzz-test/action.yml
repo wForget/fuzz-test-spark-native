@@ -1,5 +1,5 @@
 name: setup-spark
-description: 'Install and cache spark'
+description: 'Run fuzz test'
 inputs:
   native-engine:
     description: 'type of spark native engine (eg. blaze/comet/gluten)'

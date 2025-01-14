@@ -130,6 +130,10 @@ jobs:
         with:
           native-engine: comet
           native-engine-jar: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-*.jar
+      - name: Report fuzz test result of Comet
+        uses: ./.github/actions/report-fuzz-test
+        with:
+          native-engine: comet
 #      - name: Run fuzz test with comet on spark
 #        shell: bash
 #        run: |
@@ -230,6 +234,10 @@ jobs:
         with:
           native-engine: blaze
           native-engine-jar: blaze-engine-spark-${{inputs.spark-binary-version}}-*.jar
+      - name: Report fuzz test result of Blaze
+        uses: ./.github/actions/report-fuzz-test
+        with:
+          native-engine: comet
 #      - name: Upload Blaze lib
 #        uses: actions/upload-artifact@v4
 #        with:
