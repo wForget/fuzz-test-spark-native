@@ -239,7 +239,7 @@ jobs:
       - name: Report fuzz test result of Blaze
         uses: ./.github/actions/report-fuzz-test
         with:
-          native-engine: comet
+          native-engine: blaze
           github-token: ${{ secrets.GITHUB_TOKEN }}
 #      - name: Upload Blaze lib
 #        uses: actions/upload-artifact@v4

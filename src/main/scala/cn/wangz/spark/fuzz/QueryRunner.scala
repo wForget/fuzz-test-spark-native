@@ -22,6 +22,7 @@ package cn.wangz.spark.fuzz
 import org.apache.spark.sql.{Row, SparkSession}
 
 import java.io.{BufferedWriter, FileWriter, PrintWriter, StringWriter}
+import java.util.concurrent.atomic.AtomicInteger
 import scala.io.Source
 
 object QueryRunner {
@@ -162,8 +163,9 @@ object QueryRunner {
       .mkString(",")
   }
 
+  private val sqlNum: AtomicInteger = new AtomicInteger(0)
   private def showSQL(w: BufferedWriter, sql: String, maxLength: Int = 120): Unit = {
-    w.write("## SQL\n")
+    w.write(s"## SQL ${sqlNum.incrementAndGet()}\n")
     w.write("```\n")
     val words = sql.split(" ")
     val currentLine = new StringBuilder

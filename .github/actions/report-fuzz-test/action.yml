@@ -15,7 +15,7 @@ runs:
       shell: bash
       run: |
         today=$(date +'%Y-%m-%d')
-        issue_title="[$today] Spark native engine fuzz test report of ${{ inputs.native-engine }}"
+        issue_title="[$today][${{ inputs.native-engine }}] spark native engine fuzz test report"
         echo "issue_title=$issue_title" >> $GITHUB_OUTPUT
     - name: report result of fuzz test
       if: ${{ hashFiles('results.md') != '' }}
@@ -25,6 +25,15 @@ runs:
         GH_REPO: ${{ github.repository }}
       run: |
         issue_title="${{ steps.get-title.outputs.issue_title }}"
+
+        # truncate body if needed, Body is too long (maximum is 65536 characters) (addComment)
+        # 262144(=65536 * 8 / 2)
+        max_body_size=262144
+        file_size=$(wc -c <results.md)
+        if [ $file_size -ge $max_body_size ]; then
+          truncate --size $max_body_size results.md
+        fi
+
         previous_issue_number=$(gh issue list --search "$issue_title in:title" --json number --jq '.[0].number')
         if [[ -n $previous_issue_number ]]; then
           # issue already exists, add comment
@@ -35,3 +44,10 @@ runs:
           new_issue_url=$(gh issue create --title "$issue_title" --body "Action: $action_url" --label ${{ inputs.native-engine }})
           gh issue comment $new_issue_url --body-file results.md
         fi
+    - name: Upload result
+      if: ${{ hashFiles('results.md') != '' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-test-result-${{ inputs.native-engine }}-${{ github.run_id }}
+        path: results.md
+        overwrite: true
