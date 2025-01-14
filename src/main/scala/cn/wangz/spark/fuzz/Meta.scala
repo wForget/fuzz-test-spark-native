@@ -56,7 +56,7 @@ object Meta {
     Function("ltrim", 1),
     Function("rtrim", 1),
     Function("string_space", 1),
-    // Function("rpad", 2), TODO OOM
+    // Function("rpad", 2), TODO: may cause oom
     // Function("rpad", 3), // rpad can have 2 or 3 arguments
     Function("hex", 1),
     Function("unhex", 1),

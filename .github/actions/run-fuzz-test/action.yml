@@ -45,7 +45,7 @@ runs:
           --master local \
           --class cn.wangz.spark.fuzz.Main \
           $FUZZ_TEST_JAR \
-          queries --num-files=2 --num-queries=500
+          queries --num-files=2 --num-queries=2000
     - name: Run queries
       shell: bash
       run: |

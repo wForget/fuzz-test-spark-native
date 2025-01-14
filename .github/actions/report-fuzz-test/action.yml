@@ -25,27 +25,30 @@ runs:
         GH_REPO: ${{ github.repository }}
       run: |
         issue_title="${{ steps.get-title.outputs.issue_title }}"
+        results_file="results.md"
 
         # truncate body if needed, Body is too long (maximum is 65536 characters) (addComment)
         # 262144(=65536 * 8 / 2)
         max_body_size=262144
         file_size=$(wc -c <results.md)
         if [ $file_size -ge $max_body_size ]; then
+          cp results.md results-truncated.md
           truncate_msg="**Note**: The report is truncated due to issue comment length limit. You can download the complete report file in the action's artifacts."
           # add truncate message to the beginning of the file
-          sed -i "1s/^/$truncate_msg\n/" results.md
-          truncate --size $max_body_size results.md
+          sed -i "1s/^/$truncate_msg\n/" results-truncated.md
+          truncate --size $max_body_size results-truncated.md
+          results_file="results-truncated.md"
         fi
 
         previous_issue_number=$(gh issue list --search "$issue_title in:title" --json number --jq '.[0].number')
         if [[ -n $previous_issue_number ]]; then
           # issue already exists, add comment
-          gh issue comment $previous_issue_number --body-file results.md
+          gh issue comment $previous_issue_number --body-file $results_file
         else
           # create new issue
           action_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           new_issue_url=$(gh issue create --title "$issue_title" --body "Action: $action_url" --label ${{ inputs.native-engine }})
-          gh issue comment $new_issue_url --body-file results.md
+          gh issue comment $new_issue_url --body-file $results_file
         fi
     - name: Upload result
       if: ${{ hashFiles('results.md') != '' }}

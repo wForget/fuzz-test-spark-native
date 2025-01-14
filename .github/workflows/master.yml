@@ -2,7 +2,7 @@ name: Spark Native Engine Fuzz Testing
 
 on:
   schedule:
-      - cron: '0 1 * * *'
+      - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
