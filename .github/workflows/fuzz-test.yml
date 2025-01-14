@@ -28,6 +28,9 @@ on:
         required: false
         type: string
 
+permissions:
+  issues: write
+
 jobs:
   build-fuzz-test:
     name: Build fuzz Test
@@ -66,8 +69,8 @@ jobs:
     name: Build Comet
     needs: build-fuzz-test
     runs-on: ${{ inputs.os }}
-    container:
-      image: amd64/rust
+#    container:
+#      image: amd64/rust
     steps:
       - uses: actions/checkout@v4
 #      - name: Download fuzz test lib
@@ -170,8 +173,8 @@ jobs:
     name: Build Blaze
     needs: build-fuzz-test
     runs-on: ${{ inputs.os }}
-    container:
-      image: amd64/rust
+#    container:
+#      image: amd64/rust
     steps:
       - uses: actions/checkout@v4
 #      - name: Download fuzz test lib

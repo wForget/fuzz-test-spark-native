@@ -17,6 +17,9 @@ runs:
     - name: report result of fuzz test
       if: ${{ hashFiles('results.md') != '' }}
       shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
       run: |
         issue_title="${{ steps.get-title.outputs.issue_title }}"
         previous_issue_number=$(gh issue list --search "$issue_title in:title" --json number --jq '.[0].number')
