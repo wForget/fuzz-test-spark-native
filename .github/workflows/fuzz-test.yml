@@ -70,10 +70,10 @@ jobs:
       image: amd64/rust
     steps:
       - uses: actions/checkout@v4
-      - name: Download fuzz test lib
-        uses: actions/download-artifact@v4
-        with:
-          name: fuzz-test-spark-${{ github.run_id }}
+#      - name: Download fuzz test lib
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: fuzz-test-spark-${{ github.run_id }}
 #      - name: Get cached fuzz test lib
 #        id: get-fuzz-test-cache
 #        uses: actions/cache@v4
@@ -126,11 +126,33 @@ jobs:
           spark-version: ${{ inputs.spark-version }}
           scala-binary-version: ${{ inputs.scala-binary-version }}
       - name: Run fuzz test with comet on spark
-        shell: bash
-        run: |
-          ls fuzz-test-spark-native-*
-          ls comet-spark-spark*
-          spark-shell --help
+        uses: ./.github/actions/run-fuzz-test
+        with:
+          native-engine: comet
+          native-engine-jar: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-*.jar
+#      - name: Run fuzz test with comet on spark
+#        shell: bash
+#        run: |
+#          FUZZ_TEST_JAR=$(ls fuzz-test-spark-native-*.jar)
+#          mv comet-spark-spark* $SPARK_HOME/jars
+#          # Generate data
+#          $SPARK_HOME/bin/spark-submit \
+#            --master local \
+#            --class cn.wangz.spark.fuzz.Main \
+#            $FUZZ_TEST_JAR \
+#            data --num-files=2 --num-rows=200 --num-columns=100
+#          # Generate queries
+#          $SPARK_HOME/bin/spark-submit \
+#            --master local \
+#            --class cn.wangz.spark.fuzz.Main \
+#            $FUZZ_TEST_JAR \
+#            queries --num-files=2 --num-queries=500
+#          # Run queries
+#          $SPARK_HOME/bin/spark-submit \
+#              --master local \
+#              --class cn.wangz.spark.fuzz.Main \
+#              $FUZZ_TEST_JAR \
+#              run --native-engine=comet --num-files=2 --filename=queries.sql
 #      - name: Upload Comet lib
 #        uses: actions/upload-artifact@v4
 #        with:
@@ -148,10 +170,10 @@ jobs:
       image: amd64/rust
     steps:
       - uses: actions/checkout@v4
-      - name: Download fuzz test lib
-        uses: actions/download-artifact@v4
-        with:
-          name: fuzz-test-spark-${{ github.run_id }}
+#      - name: Download fuzz test lib
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: fuzz-test-spark-${{ github.run_id }}
 #      - name: Get cached fuzz test lib
 #        id: get-fuzz-test-cache
 #        uses: actions/cache@v4
@@ -203,12 +225,11 @@ jobs:
         with:
           spark-version: ${{ inputs.spark-version }}
           scala-binary-version: ${{ inputs.scala-binary-version }}
-      - name: Run fuzz test with comet on spark
-        shell: bash
-        run: |
-          ls fuzz-test-spark-native-*
-          ls blaze-engine-spark-*
-          spark-shell --help
+      - name: Run fuzz test with blaze on spark
+        uses: ./.github/actions/run-fuzz-test
+        with:
+          native-engine: blaze
+          native-engine-jar: blaze-engine-spark-${{inputs.spark-binary-version}}-*.jar
 #      - name: Upload Blaze lib
 #        uses: actions/upload-artifact@v4
 #        with:
