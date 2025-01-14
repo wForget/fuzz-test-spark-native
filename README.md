@@ -12,3 +12,8 @@ There is a scheduled [Spark Native Engine Fuzz Testing GHA](https://github.com/w
 You can see the fuzz test reports of each native engine in [issues list](https://github.com/apache/incubator-gluten/issues), which shows the running failures and consistency issues in spark with native engine.
 
 **Note**: The report may be truncated due to issue comment length limit. You can download the complete report file in the action's artifacts.
+
+## Bugs found by fuzz testing
+
+- [\[GLUTEN-8499\]\[VL\] Result mismatch of try_cast](https://github.com/apache/incubator-gluten/issues/8499)
+- [\[BLAZE-760\]: BinaryType is not supported in RangePartitioning](https://github.com/kwai/blaze/issues/760)
