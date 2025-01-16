@@ -7,6 +7,10 @@ inputs:
   native-engine-jar:
     description: 'native engine jar file'
     required: true
+  data-exclude-negative-zero:
+    description: 'exclude negative zero from fuzz test'
+    required: false
+    default: 'true'
 runs:
   using: composite
   steps:
@@ -32,11 +36,15 @@ runs:
       shell: bash
       run: |
         FUZZ_TEST_JAR=$(ls fuzz-test-spark-native-*.jar)
+        OPTS="--num-files=2 --num-rows=200 --num-columns=100"
+        if [[ "${{ inputs.data-exclude-negative-zero }}" == "true" ]]; then
+          OPTS="$OPTS --exclude-negative-zero"
+        fi
         $SPARK_HOME/bin/spark-submit \
           --master local \
           --class cn.wangz.spark.fuzz.Main \
           $FUZZ_TEST_JAR \
-          data --num-files=2 --num-rows=200 --num-columns=100
+          data $OPTS
     - name: Generate queries
       shell: bash
       run: |
