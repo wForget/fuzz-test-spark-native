@@ -16,5 +16,6 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           days-before-stale: 3
           days-before-close: 4
+          remove-issue-stale-when-updated: false
           ignore-issue-updates: true
           exempt-issue-labels: 'keep-open'
