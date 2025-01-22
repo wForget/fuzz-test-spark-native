@@ -3,6 +3,7 @@ name: Close stale issues
 on:
   schedule:
     - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   stale:
@@ -14,5 +15,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           days-before-stale: 3
-          days-before-close: 7
+          days-before-close: 4
+          ignore-issue-updates: true
           exempt-issue-labels: 'keep-open'
