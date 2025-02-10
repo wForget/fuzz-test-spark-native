@@ -64,6 +64,8 @@ object QueryRunner {
         .getLines()
         .foreach(sql => {
           try {
+            println(s"Running query: $sql")
+
             // execute with Spark
             nativeEngineConf.disableNativeEngine(spark)
             val df = spark.sql(sql)
