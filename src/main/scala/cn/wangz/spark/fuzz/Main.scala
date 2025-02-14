@@ -56,7 +56,7 @@ object Main {
     .getOrCreate()
 
   def main(args: Array[String]): Unit = {
-    val r = new Random(42)
+    val r = new Random()
 
     val conf = new Conf(args.toIndexedSeq)
     conf.subcommand match {
