@@ -66,7 +66,7 @@ object Meta {
     Function("substring", 3),
     Function("btrim", 1),
     Function("concat_ws", 2),
-    Function("repeat", 2),
+    // Function("repeat", 2), TODO: may cause oom
     Function("length", 1),
     Function("reverse", 1),
     Function("in_str", 2),
