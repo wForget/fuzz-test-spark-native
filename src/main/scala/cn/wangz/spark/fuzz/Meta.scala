@@ -19,7 +19,8 @@
 
 package cn.wangz.spark.fuzz
 
-import org.apache.spark.sql.types.{DataType, DataTypes}
+import cn.wangz.spark.fuzz.Utils._
+import org.apache.spark.sql.types._
 
 object Meta {
 
@@ -56,17 +57,19 @@ object Meta {
     Function("ltrim", 1),
     Function("rtrim", 1),
     Function("string_space", 1),
-    // Function("rpad", 2), TODO: may cause oom
-    // Function("rpad", 3), // rpad can have 2 or 3 arguments
+    FunctionWithSignature("rpad", 2, StringType, Seq(StringType, ScalarValueType(StringType, () => randomInt(10).toString))),
+    FunctionWithSignature("rpad", 3, StringType, Seq(StringType, ScalarValueType(StringType, () => randomInt(10).toString), StringType)),
+    FunctionWithSignature("rpad", 2, BinaryType, Seq(BinaryType, ScalarValueType(StringType, () => randomInt(10).toString))),
+    FunctionWithSignature("rpad", 3, BinaryType, Seq(BinaryType, ScalarValueType(StringType, () => randomInt(10).toString), BinaryType)),
     Function("hex", 1),
     Function("unhex", 1),
     Function("xxhash64", 1),
     Function("sha1", 1),
-    // Function("sha2", 1), -- needs a second argument for number of bits
+    FunctionWithSignature("sha2", 1, StringType, Seq(ScalarValueType(IntegerType, () => randomChoice(Seq(0, 224, 256, 384, 512)).toString))),
     Function("substring", 3),
     Function("btrim", 1),
     Function("concat_ws", 2),
-    // Function("repeat", 2), TODO: may cause oom
+    FunctionWithSignature("repeat", 2, StringType, Seq(StringType, ScalarValueType(StringType, () => randomInt(10).toString))),
     Function("length", 1),
     Function("reverse", 1),
     Function("in_str", 2),

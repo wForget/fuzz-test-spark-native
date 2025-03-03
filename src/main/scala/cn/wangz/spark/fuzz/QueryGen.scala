@@ -20,6 +20,7 @@
 package cn.wangz.spark.fuzz
 
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.{DataType, StructType}
 
 import java.io.{BufferedWriter, FileWriter}
 import scala.collection.mutable
@@ -59,13 +60,30 @@ object QueryGen {
     w.close()
   }
 
+  private def randomChoiceFunction(functions: Seq[Function], schema: StructType, r: Random): (Function, Seq[String]) = {
+    val func = Utils.randomChoice(functions, r)
+    val args = func match {
+      case FunctionWithSignature(_, _, _, args) =>
+        val fields = schema.fields
+        args.map {
+          case ScalarValueType(_, generateValueFunc) =>
+            generateValueFunc()
+          case t: WithSupportedType =>
+            Utils.randomChoice(fields.filter(f => t.isSupported(f.dataType)).map(f => f.name), r)
+          case argType =>
+            Utils.randomChoice(fields.filter(f => f.dataType == argType).map(f => f.name), r)
+        }
+      case _ =>
+        Range(0, func.num_args).map(_ => Utils.randomChoice(schema.fieldNames, r))
+    }
+    (func, args)
+  }
+
   private def generateAggregate(r: Random, spark: SparkSession, numFiles: Int): String = {
     val tableName = s"test${r.nextInt(numFiles)}"
     val table = spark.table(tableName)
 
-    val func = Utils.randomChoice(Meta.aggFunc, r)
-    val args = Range(0, func.num_args)
-      .map(_ => Utils.randomChoice(table.columns, r))
+    val (func, args) = randomChoiceFunction(Meta.aggFunc, table.schema, r)
 
     val groupingCols = Range(0, 2).map(_ => Utils.randomChoice(table.columns, r))
 
@@ -85,9 +103,7 @@ object QueryGen {
     val tableName = s"test${r.nextInt(numFiles)}"
     val table = spark.table(tableName)
 
-    val func = Utils.randomChoice(Meta.scalarFunc, r)
-    val args = Range(0, func.num_args)
-      .map(_ => Utils.randomChoice(table.columns, r))
+    val (func, args) = randomChoiceFunction(Meta.scalarFunc, table.schema, r)
 
     // Example SELECT c0, log(c0) as x FROM test0
     s"SELECT ${args.mkString(", ")}, ${func.name}(${args.mkString(", ")}) AS x " +
@@ -192,4 +208,39 @@ object QueryGen {
 
 }
 
-case class Function(name: String, num_args: Int)
+trait FunctionTrait {
+  def name: String
+  def num_args: Int
+}
+
+class Function(override val name: String, override val num_args: Int) extends FunctionTrait
+
+object Function {
+  def apply(name: String, num_args: Int): Function = new Function(name, num_args)
+}
+
+case class FunctionWithSignature(
+    override val name: String,
+    override val num_args: Int,
+    ret: DataType,
+    args: Seq[DataType]) extends Function(name, num_args)
+
+trait FuzzDataType {
+  def defaultSize: Int = throw new UnsupportedOperationException("defaultSize is not supported")
+  def asNullable: DataType = throw new UnsupportedOperationException("asNullable is not supported")
+}
+
+trait WithSupportedType {
+  def isSupported(dataType: DataType): Boolean
+}
+
+case class ScalarValueType(valueType: DataType, generateValueFunc: () => String)
+  extends DataType with FuzzDataType
+
+case class MultipleDataTypes(dataTypes: Seq[DataType]) extends DataType with FuzzDataType with WithSupportedType {
+  override def isSupported(dataType: DataType): Boolean = dataTypes.contains(dataType)
+}
+
+case class AllDataTypes() extends DataType with FuzzDataType with WithSupportedType {
+  override def isSupported(dataType: DataType): Boolean = true
+}
