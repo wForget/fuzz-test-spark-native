@@ -95,6 +95,13 @@ jobs:
         with:
           path: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-*.jar
           key: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Upload Datafusion Comet lib
+        uses: actions/upload-artifact@v4
+        with:
+          name: comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}
+          path: |
+            comet-spark-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}-*.jar
+          overwrite: true
       - name: Setup Spark
         uses: ./.github/actions/setup-spark
         with:
@@ -269,6 +276,13 @@ jobs:
         with:
           path: gluten-velox-bundle-spark*.jar
           key: gluten-spark${{ inputs.spark-binary-version }}-${{ steps.get-date.outputs.date }}
+      - name: Upload Gluten lib
+        uses: actions/upload-artifact@v4
+        with:
+          name: gluten-velox-bundle-spark${{ inputs.spark-binary-version }}_${{ inputs.scala-binary-version }}
+          path: |
+            gluten-velox-bundle-spark*.jar
+          overwrite: true
       - name: Setup Spark
         uses: ./.github/actions/setup-spark
         with:
