@@ -150,7 +150,6 @@ jobs:
 #          overwrite: true
 
   build-blaze:
-    if: false # disable blaze
     name: Build blaze and run fuzz test
     needs: build-fuzz-test
     runs-on: ${{ inputs.os }}
