@@ -61,5 +61,6 @@ runs:
         $SPARK_HOME/bin/spark-submit \
           --master local \
           --class cn.wangz.spark.fuzz.Main \
+          --conf spark.driver.extraJavaOptions="--add-modules=jdk.incubator.vector -Dio.netty.tryReflectionSetAccessible=true --enable-native-access=ALL-UNNAMED" \
           $FUZZ_TEST_JAR \
           run --native-engine=${{ inputs.native-engine }} --num-files=2 --filename=queries.sql
